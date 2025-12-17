@@ -2,10 +2,10 @@ package org.url_shortener_spring.demo.dtos;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 public class ClickEventDTO {
-    private LocalDateTime clickDate;
+    private LocalDate clickDate;
     private Long count;
 }
