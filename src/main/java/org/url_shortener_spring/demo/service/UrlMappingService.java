@@ -1,5 +1,7 @@
 package org.url_shortener_spring.demo.service;
 
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.url_shortener_spring.demo.dtos.ClickEventDTO;
 import org.url_shortener_spring.demo.dtos.UrlMappingDTO;
 import org.url_shortener_spring.demo.models.ClickEvents;
@@ -14,6 +16,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+@Service
+@AllArgsConstructor
 
 public class UrlMappingService {
     private UrlMappingRepository urlMappingRepository;
