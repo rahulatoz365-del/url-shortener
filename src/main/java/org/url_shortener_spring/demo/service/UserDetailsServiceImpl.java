@@ -13,10 +13,12 @@ import org.url_shortener_spring.demo.repository.UserRepository;
 public class UserDetailsServiceImpl implements UserDetailsService {
     @Autowired
     UserRepository userRepository;
+
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException{
-        User user=userRepository.findByUsername(username).orElseThrow(()->new UsernameNotFoundException("Username "+username+" Not Found!!"));
+        User user=userRepository.findByUsername(username).
+                orElseThrow(()->new UsernameNotFoundException("Username "+username+" Not Found!!"));
         return UserDetailsImpl.build(user);
     }
 }
