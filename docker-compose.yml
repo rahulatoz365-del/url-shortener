@@ -1,0 +1,41 @@
+services:
+  # Backend Service
+  backend:
+    build: ./Backend
+    container_name: url-shortener-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # We map the variables from the .env file to the container
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      FRONTEND_URL: ${FRONTEND_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    networks:
+      - app-network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # We pass the variables from .env into the build process
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL}
+        VITE_REACT_FRONT_END_URL: ${VITE_REACT_FRONT_END_URL}
+        VITE_REACT_SUBDOMAIN: ${VITE_REACT_SUBDOMAIN}
+    container_name: url-shortener-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
