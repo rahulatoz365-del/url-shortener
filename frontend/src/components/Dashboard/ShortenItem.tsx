@@ -46,7 +46,7 @@ const ShortenItem: React.FC<ShortenItemProps> = ({
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [deleting, setDeleting] = useState<boolean>(false);
 
-  const subDomain = import.meta.env.VITE_REACT_FRONT_END_URL.replace(/^https?:\/\//, "");
+  const subDomain = (import.meta.env.VITE_REACT_FRONT_END_URL || window.location.origin).replace(/^https?:\/\//, "");
 
   // Toggle analytics and trigger fetch
   const analyticsHandler = (url: string) => {
@@ -169,7 +169,7 @@ const ShortenItem: React.FC<ShortenItemProps> = ({
           <div className="flex items-center gap-2 sm:gap-3 self-start lg:self-center flex-wrap">
             {/* Copy */}
             <CopyToClipboard
-              text={`${import.meta.env.VITE_REACT_FRONT_END_URL}/s/${shortUrl}`}
+              text={`${import.meta.env.VITE_REACT_FRONT_END_URL || window.location.origin}/s/${shortUrl}`}
               onCopy={() => setIsCopied(true)}
             >
               <button
