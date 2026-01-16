@@ -1,6 +1,5 @@
-// src/hooks/useQuery.ts
-import { useQuery, UseQueryResult } from "react-query";
-import { AxiosResponse, AxiosError } from "axios";
+import { useQuery, type UseQueryResult } from "react-query";
+import { AxiosError } from "axios";
 import api from "../api/api";
 
 export interface ShortUrl {
@@ -22,92 +21,95 @@ export interface TotalClickItem {
 
 type ErrorCallback = (error: AxiosError) => void;
 
-// Fetch all ShortUrl List
-// src/hooks/useQuery.ts
+// Helper function to get date strings
+const getDateRange = () => {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30); // Last 30 days
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+  };
+
+  return {
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+  };
+};
+
 export const useFetchMyShortUrls = (
   token: string | null,
   onError: ErrorCallback
 ): UseQueryResult<ShortUrl[], AxiosError> => {
-  return useQuery<AxiosResponse<ShortUrl[]>, AxiosError, ShortUrl[]>(
-    ["my-shortenurls", token],
+  return useQuery<ShortUrl[], AxiosError>(
+    "myShortUrls",
     async () => {
-      if (!token) {
-        return { data: [] } as AxiosResponse<ShortUrl[]>;
-      }
-      return await api.get<ShortUrl[]>("/api/urls/myurls", {
+      const response = await api.get("/api/urls/myurls", {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
           Authorization: "Bearer " + token,
         },
       });
+      console.log("📊 Fetched URLs:", response.data);
+      return response.data;
     },
     {
       enabled: !!token,
-      select: (data): ShortUrl[] => {
-        // ✅ IMPORTANT: Create new array and new objects to break reference
-        const sortedData = data.data
-          .map(item => ({ ...item })) // Create new object for each item
-          .sort((a, b) =>
-            new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
-          );
-        return sortedData;
-      },
       onError,
       staleTime: 0,
-      cacheTime: 0,  // ✅ Add this to prevent caching issues
-      refetchOnMount: true,
-      refetchOnReconnect: true,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchInterval: 5000,
     }
   );
 };
 
-// Fetch total clicks in last 30 days (leave mostly as you had)
 export const useFetchTotalClicks = (
   token: string | null,
   onError: ErrorCallback
 ): UseQueryResult<TotalClickItem[], AxiosError> => {
-  return useQuery<AxiosResponse<TotalClicksResponse>, AxiosError, TotalClickItem[]>(
-    ["url-totalclick", token],
+  const { startDate, endDate } = getDateRange();
+
+  return useQuery<TotalClicksResponse, AxiosError, TotalClickItem[]>(
+    ["totalClicks", startDate, endDate], // Include dates in query key for proper caching
     async () => {
-      if (!token) {
-        return { data: {} } as AxiosResponse<TotalClicksResponse>;
-      }
-      const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-
-      const endDate = today.toISOString().split('T')[0];
-      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-
-      return await api.get<TotalClicksResponse>(
-        `/api/urls/totalClicks?startDate=${startDate}&endDate=${endDate}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: "Bearer " + token,
-          },
-        }
-      );
+      const url = `/api/urls/totalClicks?startDate=${startDate}&endDate=${endDate}`;
+      console.log("📈 Fetching total clicks:", url);
+      
+      const response = await api.get(url, {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: "Bearer " + token,
+        },
+      });
+      
+      console.log("📈 Total clicks raw response:", response.data);
+      return response.data;
     },
     {
-      select: (data): TotalClickItem[] => {
-        const convertToArray: TotalClickItem[] = Object.keys(data.data).map(
-          (key) => ({
-            clickDate: key,
-            count: data.data[key],
-          })
-        );
-        return convertToArray;
-      },
       enabled: !!token,
       onError,
       staleTime: 0,
-      refetchOnMount: true,
-      refetchOnReconnect: true,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchInterval: 5000,
+      select: (data) => {
+        // Handle empty or null response
+        if (!data || Object.keys(data).length === 0) {
+          console.log("📈 No click data found");
+          return [];
+        }
+
+        const transformed = Object.keys(data)
+          .map((key) => ({
+            clickDate: key,
+            count: data[key],
+          }))
+          .sort((a, b) => new Date(a.clickDate).getTime() - new Date(b.clickDate).getTime());
+
+        console.log("📈 Transformed click data:", transformed);
+        return transformed;
+      },
     }
   );
 };

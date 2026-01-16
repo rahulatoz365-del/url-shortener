@@ -1,51 +1,53 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect,type  ReactNode } from "react";
 
-// Define the shape of the context value
 interface StoreContextType {
   token: string | null;
   setToken: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-// Define props for the provider component
 interface ContextProviderProps {
   children: ReactNode;
 }
 
-// Create context with undefined default to enforce provider usage
-const ContextApi = createContext<StoreContextType | undefined>(undefined);
+const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-// Provider component that wraps the app and supplies auth state
 export const ContextProvider: React.FC<ContextProviderProps> = ({ children }) => {
-  // Retrieve stored token from localStorage on initial load
-  const storedToken = localStorage.getItem("JWT_TOKEN");
+  // Initialize token safely
+  const [token, setToken] = useState<string | null>(() => {
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) return null;
+    
+    // Try to parse it in case it was stored as a JSON string (e.g. "token")
+    try {
+      const parsed = JSON.parse(storedToken);
+      if (typeof parsed === "string") return parsed;
+      return storedToken; // If it's not a string after parsing, use raw
+    } catch (e) {
+      // If JSON.parse fails (SyntaxError), it means it's a raw string (JWT). Return it directly.
+      return storedToken;
+    }
+  });
 
-  // Parse token if exists, otherwise set to null
-  const getToken: string | null = storedToken ? JSON.parse(storedToken) : null;
-
-  // State to hold the current authentication token
-  const [token, setToken] = useState<string | null>(getToken);
-
-  // Value object to be shared across all consuming components
-  const contextValue: StoreContextType = {
-    token,
-    setToken,
-  };
+  // Sync with localStorage whenever token changes
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("token", token);
+    } else {
+      localStorage.removeItem("token");
+    }
+  }, [token]);
 
   return (
-    <ContextApi.Provider value={contextValue}>
+    <StoreContext.Provider value={{ token, setToken }}>
       {children}
-    </ContextApi.Provider>
+    </StoreContext.Provider>
   );
 };
 
-// Custom hook to access the context safely
 export const useStoreContext = (): StoreContextType => {
-  const context = useContext(ContextApi);
-
-  // Throw error if hook is used outside of ContextProvider
+  const context = useContext(StoreContext);
   if (!context) {
     throw new Error("useStoreContext must be used within a ContextProvider");
   }
-
   return context;
 };

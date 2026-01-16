@@ -1,33 +1,44 @@
-// frontend/src/components/OAuth2RedirectHandler.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStoreContext } from '../contextApi/ContextApi';
 import toast from 'react-hot-toast';
-import Loader from './Loader';
 
 const OAuth2RedirectHandler: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setToken } = useStoreContext();
+  
+  // Track if we've already processed the redirect
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const error = searchParams.get('error');
+    // Prevent double execution in React Strict Mode
+    if (hasProcessed.current) return;
+    
+    const token = searchParams.get("token");
+    const error = searchParams.get("error");
 
     if (token) {
-      localStorage.setItem('JWT_TOKEN', token);
+      hasProcessed.current = true; // Mark as processed
       setToken(token);
-      toast.success('Login successful!');
-      navigate('/dashboard');
+      toast.success("Login Successful!");
+      navigate("/dashboard", { replace: true });
     } else if (error) {
-      toast.error(decodeURIComponent(error) || 'OAuth login failed');
-      navigate('/login');
+      hasProcessed.current = true; // Mark as processed
+      toast.error("Login Failed: " + decodeURIComponent(error));
+      navigate("/login", { replace: true });
     } else {
-      navigate('/login');
+      // No token or error - just redirect to login
+      hasProcessed.current = true;
+      navigate("/login", { replace: true });
     }
   }, [searchParams, navigate, setToken]);
 
-  return <Loader />;
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
 };
 
 export default OAuth2RedirectHandler;
